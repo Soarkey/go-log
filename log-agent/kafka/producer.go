@@ -6,19 +6,20 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-type Kafka struct {
+type Producer struct {
 	client sarama.SyncProducer
+	addrs  []string
 }
 
 // SendToKafka 处理日志并投递到kafka
-func (k *Kafka) SendToKafka(topic, data string) {
+func (p *Producer) SendToKafka(topic, data string) {
 	// 构造消息
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.StringEncoder(data),
 	}
 	// 发送消息
-	pid, offset, err := k.client.SendMessage(msg)
+	pid, offset, err := p.client.SendMessage(msg)
 	if err != nil {
 		fmt.Printf("消息发送失败! err: %+v\n", err)
 		return
@@ -27,7 +28,7 @@ func (k *Kafka) SendToKafka(topic, data string) {
 	return
 }
 
-func New(addrs []string) *Kafka {
+func NewProducer(addrs []string) *Producer {
 	config := sarama.NewConfig()
 	config.Producer.RequiredAcks = sarama.WaitForAll
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
@@ -35,7 +36,10 @@ func New(addrs []string) *Kafka {
 
 	client, err := sarama.NewSyncProducer(addrs, config)
 	if err != nil {
-		panic(fmt.Sprintf("kafka连接失败 err: %+v\n", err))
+		panic(fmt.Sprintf("kafka 生产者连接失败 err: %+v\n", err))
 	}
-	return &Kafka{client: client}
+	return &Producer{
+		client: client,
+		addrs:  addrs,
+	}
 }

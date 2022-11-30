@@ -25,4 +25,14 @@ services:
     depends_on:
       - zookeeper
       - kafka
+      - log-transfer
     container_name: log-agent
+  log-transfer:
+    image: log-transfer:latest
+    build:
+      context: ./
+      dockerfile: log-transfer.Dockerfile
+    depends_on:
+      - zookeeper
+      - kafka
+    container_name: log-transfer

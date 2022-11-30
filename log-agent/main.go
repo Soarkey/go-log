@@ -44,7 +44,7 @@ const (
 func main() {
 	os.Create(LOG_PATH)
 
-	k := kafka.New([]string{"kafka:9092"})
+	k := kafka.NewProducer([]string{"kafka:9092"})
 	t := tail.New(LOG_PATH)
 
 	go AutoWriteLog(LOG_PATH)
