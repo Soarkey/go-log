@@ -37,7 +37,7 @@ func AutoWriteLog(filename string) {
 }
 
 const (
-	TOPIC    = "log"
+	TOPIC    = "go-log"
 	LOG_PATH = "demo.log"
 )
 
@@ -56,7 +56,7 @@ func main() {
 			k.SendToKafka(TOPIC, line.Text)
 		default:
 			// 避免CPU空转
-			time.Sleep(time.Millisecond * 500)
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 }

@@ -6,10 +6,10 @@ services:
     ports:
       - "22181:2181"
   kafka:
+    container_name: kafka
     image: bitnami/kafka:3.2.3
     depends_on:
       - zookeeper
-    container_name: kafka
     ports:
       - '29092:9092'
     environment:
@@ -18,21 +18,77 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       ALLOW_PLAINTEXT_LISTENER: yes
   log-agent:
-    image: log-agent:latest
+    container_name: log-agent
+    image: log-agent
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s # 重新尝试的等待时间
+        max_attempts: 5 # 最多尝试次数
+        window: 10s
     build:
       context: ./
       dockerfile: log-agent.Dockerfile
     depends_on:
-      - zookeeper
       - kafka
       - log-transfer
-    container_name: log-agent
+    links:
+      - kafka
   log-transfer:
-    image: log-transfer:latest
+    container_name: log-transfer
+    image: log-transfer
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s # 重新尝试的等待时间
+        max_attempts: 5 # 最多尝试次数
+        window: 10s
     build:
       context: ./
       dockerfile: log-transfer.Dockerfile
     depends_on:
-      - zookeeper
       - kafka
-    container_name: log-transfer
+      - es
+    links:
+      - kafka
+      - es
+  es:
+    container_name: es
+    image: elasticsearch:8.5.2
+    ports:
+      - "29200:9200"
+    environment:
+      TZ: Asia/Shanghai
+      LANG: en_US.UTF-8
+      discovery.type: single-node
+      cluster.name: es
+      ES_JAVA_OPTS: "-Xms256m -Xmx256m"
+      ELASTIC_PASSWORD: 123456
+      xpack.security.enabled: false
+    privileged: true
+  es-vis: # es可视化工具
+    container_name: es-vis
+    image: containerize/elastichd
+    depends_on:
+      - es
+    ports:
+      - "29800:9800"
+    links:
+      - es
+  kibana:
+    container_name: kibana
+    image: kibana:8.5.2
+    depends_on:
+      - es
+    ports:
+      - "25601:5601"
+    environment:
+      TZ: Asia/Shanghai
+      LANG: en_US.UTF-8
+      ELASTICSEARCH_HOSTS: http://es:9200
+      elasticsearch.username: "elastic"
+      elasticsearch.password: "123456"
+      I18N_LOCALE: zh-CN
+    links:
+      - es
+    privileged: true
